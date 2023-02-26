@@ -1,0 +1,13 @@
+{
+    "name": "tcongcq/innosoft-filemanager",
+    "description": "The InnoSoft's FileManager",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "EonNguyen",
+            "email": "tcongcq@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}

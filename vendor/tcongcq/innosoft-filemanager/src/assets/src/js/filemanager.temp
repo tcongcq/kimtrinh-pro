@@ -1,0 +1,285 @@
+<script type="text/html" id="filemanager-template">
+    <div data-bind="attr: {class: loading() ? 'loading open':'loading'}">
+        <span class="g-loading-container">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </span>
+    </div>
+    <div class="grid-view" data-bind="visible: viewMode() == 'grid'">
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="toolbar">
+                <button class="btn btn-primary navbar-btn btn-sm" data-bind="click: upload">
+                    <i class="fa fa-cloud-upload" aria-hidden="true"></i> <span data-bind="html: params.labels.upload"></span>
+                </button>
+                <button class="btn btn-default navbar-btn btn-sm" data-toggle="modal" data-target="#cfmCreateDir">
+                    <i class="fa fa-folder" aria-hidden="true"></i> <span data-bind="html: params.labels.new_dir"></span>
+                </button>
+                <button data-bind="click: fetch, attr: {title: params.labels.refresh}" class="btn btn-default navbar-btn btn-sm" data-toggle="tooltip">
+                    <i class="fa fa-refresh" aria-hidden="true"></i>
+                </button>
+                <button data-bind="visible: ids().length > 0, attr:{title: params.labels.delete}, click: function(){ $('#cfmDelete').modal('show'); }" class="btn btn-danger navbar-btn btn-sm"  data-toggle="tooltip">
+                    <i class="fa fa-trash" aria-hidden="true"></i>
+                </button>
+                <div class="pull-right">
+                    <div class="btn-group" role="group">
+                        <button data-bind="visible: ids().length == 1 && ids()[0].type != 'folder', attr:{title: params.labels.choose}, click: chooseItem.bind($data, ids()[0])" class="btn btn-default navbar-btn btn-sm" data-toggle="tooltip">
+                            <i class="fa fa-check" aria-hidden="true"></i>
+                        </button>
+                        <button data-bind="visible: ids().length == 1, attr:{title: params.labels.rename}, click: rename.bind($data, ids()[0])" class="btn btn-default navbar-btn btn-sm" data-toggle="tooltip">
+                            <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                        </button>
+                        <button data-bind="visible: ids().length == 1 && ids()[0].type == 'photo', attr:{title: params.labels.edit}, click: photoEditor.bind($data, ids()[0])" class="btn btn-default navbar-btn btn-sm" data-toggle="tooltip">
+                            <i class="fa fa-paint-brush" aria-hidden="true"></i>
+                        </button>
+                        <button data-bind="visible: ids().length == 1 && ids()[0].type != 'folder', attr:{title: params.labels.download}, click: download.bind($data, ids()[0])" class="btn btn-default navbar-btn btn-sm" data-toggle="tooltip">
+                            <i class="fa fa-cloud-download" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <!--ko if: photos().length > 0 || videos().length > 0 || audios().length > 0 || files().length > 0 -->
+                    <div class="btn-group" role="group" aria-label="group-action">
+                        <button type="button" class="btn btn-sm btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-filter" aria-hidden="true"></i> <span data-bind="html: filter_label()"></span> <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu pull-right filter-files">
+                            <div data-bind="html: params.labels.all, click: doFilter.bind($data, '', params.labels.all)"></div>
+                            <!-- ko if: photos().length > 0 -->
+                            <div data-bind="html: params.labels.photos, click: doFilter.bind($data, 'photos', params.labels.photos)"></div>
+                            <!-- ko foreach: extension_filters(photos()) -->
+                            <span data-bind="html: $data, click: $parent.doFilter.bind($data, $rawData, $rawData)"></span>
+                            <!-- /ko -->
+                            <!-- /ko -->
+
+                            <!-- ko if: videos().length > 0 -->
+                            <div data-bind="html: params.labels.videos, click: doFilter.bind($data, 'videos', params.labels.videos)"></div>
+                            <!-- ko foreach: extension_filters(videos()) -->
+                            <span data-bind="html: $data, click: $parent.doFilter.bind($data, $rawData, $rawData)"></span>
+                            <!-- /ko -->
+                            <!-- /ko -->
+
+                            <!-- ko if: audios().length > 0 -->
+                            <div data-bind="html: params.labels.audios, click: doFilter.bind($data, 'audios', params.labels.audios)"></div>
+                            <!-- ko foreach: extension_filters(audios()) -->
+                            <span data-bind="html: $data, click: $parent.doFilter.bind($data, $rawData, $rawData)"></span>
+                            <!-- /ko -->
+                            <!-- /ko -->
+
+                            <!-- ko if: files().length > 0 -->
+                            <div data-bind="html: params.labels.files_tit, click: doFilter.bind($data, 'files', params.labels.files_tit)"></div>
+                            <!-- ko foreach: extension_filters(files()) -->
+                            <span data-bind="html: $data, click: $parent.doFilter.bind($data, $rawData, $rawData)"></span>
+                            <!-- /ko -->
+                            <!-- /ko -->
+                        <ul>
+                    </div>
+                    <!-- /ko -->
+					<div class="btn-group" role="group">
+                        <div id="search-wrap">
+                            <input class="form-control input-sm" data-bind="event: {keyup: doSearch}, attr:{placeholder: params.labels.search}">
+                            <i id="search-clear" class="fa fa-times" aria-hidden="true" data-bind="click: clearSearch, attr: {'data-toggle': search()!=''}"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <ol class="breadcrumb">
+                <li data-bind="click: gotoFolder.bind($data, '/')"><i class="fa fa-home" aria-hidden="true"></i></li>
+                <!-- ko foreach: paths -->
+                <li data-bind="click: $parent.gotoFolder.bind($data, path), html: dir"></li>
+                <!-- /ko -->
+            <ol>
+        </nav>
+        <div class="upload" id="upload">
+            <input id="fileupload" type="file" name="fileupload" multiple>
+            <!-- ko if: uploadprogress -->
+            <div class="uploadbar">
+                <div id="header">
+                    <span data-bind="html: upload_info()"></span>
+                    <i class="fa fa-times" aria-hidden="true" data-bind="click: closeUploadProgress"></i>
+                </div>
+                <div id="about" class="nano" style="max-height: 200px;">
+                    <div class="nano-content">
+                        <ul class="list-group"></ul>
+                    </div>
+                </div>
+            </div>
+            <!-- /ko -->
+        </div>
+        <div class="main">
+            <!--ko if: folders().length > 0-->
+            <div class="container-fluid" style="margin-top: 10px;">
+                <span data-bind="html: params.labels.folders_tit"></span>
+                <div class="badge" data-bind="html: params.labels.select_all, click: select_all.bind($data, 'folders')"></div>
+            </div>
+            <!--ko foreach: folders-->
+            <div data-bind="attr: {class: $.inArray($rawData, $parent.ids())>=0 ? 'thumb-folder selected':'thumb-folder', 'data-raw': JSON.stringify($data)}">
+                <i data-bind="click: $parent.select_item" class="fa fa-folder" aria-hidden="true"></i> <span data-bind="click: $parent.gotoFolder.bind($data, $parent.path() + '/' + filename), html: filename"></span>
+            </div>
+            <!--/ko-->
+            <!--/ko-->
+            <!--ko if: photos().length > 0 || videos().length > 0 || audios().length > 0 || files().length > 0 -->
+            <div class="container-fluid" style="margin-top: 10px;">
+                <span data-bind="html: params.labels.files_tit"></span>
+                <div class="badge" data-bind="html: params.labels.select_all, click: select_all.bind($data, 'files')"></div>
+            </div>
+            <!--ko foreach: videos-->
+            <!-- ko if: ($parent.filter() === "" || $parent.filter() === "videos" || $parent.filter() === extension) && ( $parent.search() === "" || String(filename).latinise().toLowerCase().indexOf(String($parent.search()).latinise().toLowerCase()) !== -1) -->
+            <div style="display:none;" data-bind="attr:{id: 'video'+($index()+1)}">
+                <video class="lg-video-object lg-html5" controls preload="none">
+                    <source data-bind="attr: {src: $parent.params.public_path + path}">
+                </video>
+            </div>
+            <!--/ko-->
+            <!--/ko-->
+            <!--ko foreach: audios-->
+            <!-- ko if: ($parent.filter() === "" || $parent.filter() === "audios" || $parent.filter() === extension) && ( $parent.search() === "" || String(filename).latinise().toLowerCase().indexOf(String($parent.search()).latinise().toLowerCase()) !== -1) -->
+            <div style="display:none;" data-bind="attr:{id: 'audio'+($index()+1)}">
+                <div class="lg-audio-container">
+                    <div class="lg-disk-cd"></div>
+                    <div class="lg-audio-body">
+                        <div id="waveform"></div>
+                        <div class="lg-audio-toolbar">
+                            <div id="btn-group">
+                                <span class="btn-audio-play-pause">
+                                    <i class="fa fa-play" aria-hidden="true"></i>
+                                </span>
+                                <span class="btn-audio-toggle-mute">
+                                    <i class="fa fa-volume-up" aria-hidden="true"></i>
+                                </span>
+                            </div>
+                            <span id="lg-audio-process"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/ko-->
+            <!--/ko-->
+            <!--ko foreach: files-->
+            <!-- ko if: ($parent.filter() === "" || $parent.filter() === "files" || $parent.filter() === extension) && ( $parent.search() === "" || String(filename).latinise().toLowerCase().indexOf(String($parent.search()).latinise().toLowerCase()) !== -1) -->
+            <div style="display:none;" data-bind="attr:{id: 'file'+($index()+1)}">
+                <div class="lg-file-container" data-bind="attr: {'style': 'background-image: url(' + ($parent.extension_thumbnails[extension] === undefined ? $parent.extension_thumbnails['unknown']:$parent.extension_thumbnails[extension]) + ');' }"></div>
+            </div>
+            <!--/ko-->
+            <!--/ko-->
+            <div id="lightgallery">
+                <!--ko foreach: photos-->
+                <!-- ko if: ($parent.filter() === "" || $parent.filter() === "photos" || $parent.filter() === extension) && ( $parent.search() === "" || String(filename).latinise().toLowerCase().indexOf(String($parent.search()).latinise().toLowerCase()) !== -1) -->
+                <div data-type="photo" data-bind="attr: {class: $.inArray($rawData, $parent.ids())>=0 ? 'item selected':'item', 'data-raw': JSON.stringify($data), 'data-src': $parent.params.public_path + path}">
+                    <span class="item-select fa" data-bind="click: $parent.select_item"></span>
+                    <div class="item-preview" data-bind="attr: {title: filename + '.' + extension, 'data-src': $parent.params.public_path + path, 'data-sub-html': filename+ '.'+extension+'<br><small>'+size+' KB</small>'}">
+                        <img class="img-cover" data-bind="attr: {'src': $parent.params.public_path + path}" />
+                    </div>
+                    <span class="filename" data-bind="html: filename + '.' + extension"></span>
+                </div>
+                <!-- /ko -->
+                <!--/ko-->
+                <!--ko foreach: videos-->
+                <!-- ko if: ($parent.filter() === "" || $parent.filter() === "videos" || $parent.filter() === extension) && ( $parent.search() === "" || String(filename).latinise().toLowerCase().indexOf(String($parent.search()).latinise().toLowerCase()) !== -1) -->
+                <div data-type="file" data-bind="attr: {class: $.inArray($rawData, $parent.ids())>=0 ? 'item selected':'item', 'data-raw': JSON.stringify($data), 'data-src': $parent.params.public_path + path}">
+                    <span class="item-select fa" data-bind="click: $parent.select_item"></span>
+                    <div class="item-preview" data-bind="attr: {title: filename + '.' + extension, 'data-download-url': $parent.params.public_path + path, 'data-html': '#video'+($index()+1), 'data-sub-html': filename+ '.'+extension+'<br><small>'+size+' KB</small>'}" data-poster="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABkCAYAAABkW8nwAAAACXBIWXMAAA7DAAAOwwHHb6hkAAABCUlEQVR4nO3SQQHAIADEsBv+PTMT9JdoyLftDh47g4BYJMQiIRYJsUiIRUIsEmKREIuEWCTEIiEWCbFIiEVCLBJikRCLhFgkxCIhFgmxSIhFQiwSYpEQi4RYJMQiIRYJsUiIRUIsEmKREIuEWCTEIiEWCbFIiEVCLBJikRCLhFgkxCIhFgmxSIhFQiwSYpEQi4RYJMQiIRYJsUiIRUIsEmKREIuEWCTEIiEWCbFIiEVCLBJikRCLhFgkxCIhFgmxSIhFQiwSYpEQi4RYJMQiIRYJsUiIRUIsEmKREIuEWCTEIiEWCbFIiEVCLBJikRCLhFgkxCIhFgmxSIhFQiwSYpEQi4RYJMQisP2HrgHHDkcEwwAAAABJRU5ErkJggg==">
+                        <img class="img-cover" src="data:image/png;base64,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" />
+                    </div>
+                    <span class="filename" data-bind="html: filename + '.' + extension"></span>
+                </div>
+                <!--/ko-->
+                <!--/ko-->
+                <!--ko foreach: audios-->
+                <!-- ko if: ($parent.filter() === "" || $parent.filter() === "audios" || $parent.filter() === extension) && ( $parent.search() === "" || String(filename).latinise().toLowerCase().indexOf(String($parent.search()).latinise().toLowerCase()) !== -1) -->
+                <div data-type="file" data-bind="attr: {class: $.inArray($rawData, $parent.ids())>=0 ? 'item selected':'item', 'data-raw': JSON.stringify($data), 'data-src': $parent.params.public_path + path}">
+                    <span class="item-select fa" data-bind="click: $parent.select_item"></span>
+                    <div class="item-preview" data-cus-type="audio" data-bind="attr: {'data-cus-html': '#audio'+($index()+1), title: filename + '.' + extension, 'data-src': $parent.params.public_path + path, 'data-sub-html': filename+ '.'+extension+'<br><small>'+size+' KB</small>'}">
+                        <img class="img-cover" data-bind="attr: {src: $parent.extension_thumbnails['audio']}" />
+                    </div>
+                    <span class="filename" data-bind="html: filename + '.' + extension"></span>
+                </div>
+                <!--/ko-->
+                <!--/ko-->
+                <!--ko foreach: files-->
+                <!-- ko if: ($parent.filter() === "" || $parent.filter() === "files" || $parent.filter() === extension) && ( $parent.search() === "" || String(filename).latinise().toLowerCase().indexOf(String($parent.search()).latinise().toLowerCase()) !== -1) -->
+                <div data-type="file" data-bind="attr: {class: $.inArray($rawData, $parent.ids())>=0 ? 'item selected':'item', 'data-raw': JSON.stringify($data), 'data-src': $parent.params.public_path + path}">
+                    <span class="item-select fa" data-bind="click: $parent.select_item"></span>
+                    <div class="item-preview" data-bind="attr: {'data-cus-html': '#file'+($index()+1), title: filename + '.' + extension, 'data-src': $parent.params.public_path + path, 'data-sub-html': filename+ '.'+extension+'<br><small>'+size+' KB</small>'}">
+                        <img class="img-cover" data-bind="attr: {src: $parent.extension_thumbnails[extension] === undefined ? $parent.extension_thumbnails['unknown']:$parent.extension_thumbnails[extension] }"/>
+                    </div>
+                    <span class="filename" data-bind="html: filename + '.' + extension"></span>
+                </div>
+                <!--/ko-->
+                <!--/ko-->
+            </div>
+            <!--/ko-->
+        </div>
+        <div class="dragover">
+            <span class="bouncetoup"></span>
+            <span data-bind="html: params.labels.drop_to_upload"></span>
+        </div>
+    </div>
+
+    <div class="photo-editor" data-bind="visible: viewMode() == 'photo-editor'">
+        <div class="toolbar">
+            <span id="title" data-bind="html: current().filename + '.' + current().extension"></span>
+            <div class="pull-right"></div>
+        </div>
+        <div class="work-space"></div>
+        <div class="photo-preview"></div>
+    </div>
+    <div class="status-bar text-muted" data-bind="visible: viewMode() == 'grid'">
+        <div class="pull-left" data-bind="html: status_info"></div>
+        <div class="disk-space pull-right">
+            <span data-bind="html: disk_space_info"></span>
+             <span class="progress-container">
+                 <span data-bind="attr: {style: 'width: '+disk_space_percent_info()+'%'}"></span>
+            </span>
+        </div>
+    </div>
+    <!--cfmCreateDir-->
+    <div class="modal" id="cfmCreateDir" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="cfmCreateDir" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content modal-create-dir">
+                <div class="modal-body">
+                    <form role="form" data-bind="submit: createDir">
+                        <div class="form-group">
+                            <label for="dirname" class="control-label"><span data-bind="html: params.labels.dirname"></span> <sup class="text-danger">(*)</sup></label>
+                            <input type="text" class="form-control" name="dirname" id="dirname" required autofocus>
+                            <small data-bind="html: params.labels.note_create_dir"></small>
+                        </div>
+                        <button class="btn btn-primary" type="submit"><span data-bind="html: params.labels.save"></span></button>
+                        <button class="btn btn-default" data-dismiss="modal"><span data-bind="html: params.labels.cancel"></span></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--cfmRename-->
+    <div class="modal" id="cfmRename" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="cfmRename" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content modal-info">
+                <div class="modal-body">
+                    <form role="form" data-bind="submit: doRename">
+                        <div class="form-group">
+                            <label for="new_filename" class="control-label"><span data-bind="html: params.labels.new_filename"></span> <sup class="text-danger">(*)</sup></label>
+                            <input type="text" class="form-control" name="new_filename" id="new_filename" required autofocus>
+                            <small data-bind="html: params.labels.note_filename"></small>
+                        </div>
+                        <button class="btn btn-primary" type="submit"><span data-bind="html: params.labels.save"></span></button>
+                        <button class="btn btn-default" data-dismiss="modal"><span data-bind="html: params.labels.cancel"></span></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--cfmDelete-->
+    <div class="modal" id="cfmDelete" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="cfmDelete" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content modal-delete">
+                <div class="modal-body">
+                    <form role="form" data-bind="submit: doDelete">
+                        <h4 data-bind="html: params.labels.delete_confirm"></h4>
+                        <button class="btn btn-danger" type="submit"><span data-bind="html: params.labels.delete"></span></button>
+                        <button class="btn btn-default" data-dismiss="modal"><span data-bind="html: params.labels.cancel"></span></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
